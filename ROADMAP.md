@@ -4,7 +4,7 @@ This document tracks what is missing or incomplete in `vm_result` as a focused s
 
 ---
 
-### 0.1 Unit Tests
+### ~~0.1 Unit Test~~ ✅
 
 The package has zero tests. Every public surface needs coverage:
 
