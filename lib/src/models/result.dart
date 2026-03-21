@@ -62,7 +62,7 @@ sealed class Result<T> with _$Result<T> {
 ///
 /// Example:
 /// ```dart
-/// final result = await guardWithResult(() => repository.login());
+/// final result = await runWithValueResult(() => repository.login());
 /// result.when(
 ///   success: (user) => print('Logged in as ${user.name}'),
 ///   failure: (error) => print('Login failed: ${error.message}'),
