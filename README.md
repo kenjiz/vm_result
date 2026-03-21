@@ -10,7 +10,9 @@ A minimal, production-grade MVVM ViewModel contract for Flutter.
 
 - **`Result<T>`** — A freezed sealed class representing the four lifecycle states of an async value.
 - **`ValueResult<T>`** — A lightweight success/failure type for operations where you need to branch on the outcome.
+- **`PaginatedResult<T>`** — A freezed model for accumulated paginated list state (items, page, hasNextPage, isLoadingMore).
 - **`VMResult<S>`** — Abstract `ChangeNotifier` ViewModel base class backed by `ValueListenable<Result<S>>`.
+- **`VMPaginated<S>`** — Extends `VMResult` with built-in `loadFirst`, `loadMore`, and `refresh` pagination logic.
 - **`VMResultEffect<S, UE>`** — Extends `VMResult` with a broadcast `Stream` for one-shot UI side effects.
 - **`ResultBuilder<T>`** — A thin `ValueListenableBuilder` wrapper for reactive UI.
 - **`EffectListener`** — A `StatefulWidget` that subscribes to an effect stream and dispatches callbacks to the UI.
@@ -147,6 +149,70 @@ vm.disposed     // bool — true after dispose() is called
 ```
 
 > **Important:** Always call `dispose()` in your widget's `dispose()` method to prevent memory leaks. The class handles this via `ChangeNotifier.dispose()`.
+
+---
+
+### `VMPaginated<S>`
+
+Extends `VMResult<PaginatedResult<S>>` with built-in pagination logic. Implement one abstract method — `fetchPage(int page)` — and get `loadFirst`, `loadMore`, and `refresh` for free.
+
+```dart
+class PostsViewModel extends VMPaginated<Post> {
+  PostsViewModel(this._repository);
+
+  final PostRepository _repository;
+
+  @override
+  Future<PageResult<Post>> fetchPage(int page) async {
+    final response = await _repository.getPosts(page: page);
+    return PageResult(
+      items: response.posts,
+      hasNextPage: response.hasNextPage,
+    );
+  }
+}
+```
+
+| Method        | Loading state | Returns                                   | Use when                |
+| ------------- | ------------- | ----------------------------------------- | ----------------------- |
+| `loadFirst()` | Full          | `Future<void>`                            | Initial load            |
+| `loadMore()`  | Inline only   | `Future<ValueResult<PaginatedResult<S>>>` | Appending the next page |
+| `refresh()`   | Full          | `Future<void>`                            | Pull-to-refresh         |
+
+**`loadMore` error handling:** on failure the existing item list is preserved. `isLoadingMore` is reset to `false` and a `ValueResult.failure` is returned so the caller can show a toast or inline error — the full `Result.error` state is intentionally not set.
+
+```dart
+// In your widget:
+Future<void> _onScrolledToEnd() async {
+  final result = await _vm.loadMore();
+  result.whenOrNull(
+    failure: (e) => ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(e.toString()))),
+  );
+}
+```
+
+The `PaginatedResult<T>` state is rendered via `ResultBuilder` like any other `VMResult`:
+
+```dart
+ResultBuilder<PaginatedResult<Post>>(
+  listenable: viewModel,
+  builder: (context, result, _) => result.when(
+    initial: () => const SizedBox.shrink(),
+    loading: () => const Center(child: CircularProgressIndicator()),
+    error:   (error) => ErrorView(error: error),
+    data: (paginated) => ListView.builder(
+      itemCount: paginated.items.length + (paginated.isLoadingMore ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index == paginated.items.length) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        return PostTile(post: paginated.items[index]);
+      },
+    ),
+  ),
+);
+```
 
 ---
 
@@ -333,10 +399,13 @@ Widget Layer
 
 ViewModel Layer
   └── VMResultEffect<S, UE>  — ViewModel with effects
+  └── VMPaginated<S>         — ViewModel for paginated lists
         └── VMResult<S>      — base ViewModel (ChangeNotifier + ValueListenable)
 
 Model Layer
   └── Result<T>              — 4-state async value (initial/loading/data/error)
+  └── PaginatedResult<T>     — accumulated paginated list state
+  └── PageResult<T>          — single-page DTO from fetchPage
   └── ValueResult<T>         — 2-state operation result (success/failure)
   └── BaseUiEffect / UiEffect — side-effect contracts
 ```
@@ -352,7 +421,7 @@ Model Layer
 
 ### Code generation
 
-This package uses [freezed](https://pub.dev/packages/freezed) for the `Result` and `UiEffect` models. If you modify those files, regenerate with:
+This package uses [freezed](https://pub.dev/packages/freezed) for the `Result`, `UiEffect`, and `PaginatedResult` models. If you modify those files, regenerate with:
 
 ```sh
 dart run build_runner build --delete-conflicting-outputs

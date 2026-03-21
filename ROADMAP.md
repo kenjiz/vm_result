@@ -30,19 +30,16 @@ Implemented in `VMResult`:
 
 ---
 
-### 1.2 `PaginatedResult<T>` + `VMPaginated<S>`
+### ~~1.2 `PaginatedResult<T>` + `VMPaginated<S>`~~ ✅
 
-Paginated lists are common enough to warrant a shared contract:
+Implemented:
 
-```
-PaginatedResult<T>
-├── items: List<T>
-├── hasNextPage: bool
-├── isLoadingMore: bool
-└── page: int
-```
-
-A `VMPaginated<S>` base would expose `loadFirst()`, `loadMore()`, and `refresh()` with correct state transitions for the append-vs-replace distinction. Without this, every developer re-implements pagination with subtly different edge-case handling.
+- `PageResult<T>` — plain class returned by `fetchPage(int page)`, carries `items` and `hasNextPage`
+- `PaginatedResult<T>` — freezed model holding accumulated `items`, current `page`, `hasNextPage`, and `isLoadingMore`
+- `VMPaginated<S> extends VMResult<PaginatedResult<S>>` — exposes `loadFirst()`, `loadMore()`, and `refresh()`
+  - `loadFirst()` / `refresh()` delegate to `run()` — get the drop guard and full loading state for free
+  - `loadMore()` uses `isLoadingMore` for inline progress; on error the item list is preserved and `ValueResult.failure` is returned
+  - Subclasses implement one abstract method: `Future<PageResult<S>> fetchPage(int page)`
 
 ---
 
@@ -68,13 +65,10 @@ Populate `CHANGELOG.md`, verify `pubspec.yaml` metadata (homepage, repository, i
 
 ## Summary
 
-| #       | Item                              | Priority |
-| ------- | --------------------------------- | -------- |
-| 0.1     | Unit tests                        | Critical |
-| ~~1.1~~ | ~~In-flight deduplication~~ ✅    | ~~High~~ |
-| 1.2     | `PaginatedResult` + `VMPaginated` | High     |
-| 1.3     | `FormViewModel`                   | Medium   |
-| 2.1     | Test utilities                    | Medium   |
-| 2.2     | Mason brick                       | Low      |
-| 3.1     | CI pipeline                       | Medium   |
-| 3.2     | pub.dev publishing                | Low      |
+| #       | Item                                     | Priority |
+| ------- | ---------------------------------------- | -------- |
+| 0.1     | Unit tests                               | Critical |
+| ~~1.1~~ | ~~In-flight deduplication~~ ✅           | ~~High~~ |
+| ~~1.2~~ | ~~`PaginatedResult` + `VMPaginated`~~ ✅ | ~~High~~ |
+| 2.1     | CI pipeline                              | Medium   |
+| 2.2     | pub.dev publishing                       | Low      |

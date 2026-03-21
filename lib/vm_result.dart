@@ -1,5 +1,7 @@
+export 'src/models/paginated_result.dart';
 export 'src/models/result.dart';
 export 'src/models/ui_effect.dart';
+export 'src/vms/vm_paginated.dart';
 export 'src/vms/vm_result_effect.dart';
 export 'src/vms/vm_result.dart';
 export 'src/widgets/effect_listener.dart';
