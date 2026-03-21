@@ -9,6 +9,7 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
 
   Result<S> _state;
   bool _isExecuting = false;
+  int _runLatestGeneration = 0;
 
   /// Whether the VM is currently executing an async operation.
   bool get isExecuting => _isExecuting;
@@ -60,12 +61,16 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
   /// Shows loading state → executes action → sets data or error.
   /// This is the most common guard pattern for simple async operations.
   ///
+  /// Calls are deduplicated: if an operation is already in-flight, subsequent
+  /// calls are dropped and a debug warning is logged.
+  ///
   /// Example:
   /// ```dart
   /// Future<void> loadUser() => run(() => repository.getUser());
   /// ```
   @protected
   Future<void> run(Future<S> Function() action) async {
+    if (_dropIfExecuting()) return;
     setLoading();
     await _execute(action, onSuccess: setData);
   }
@@ -74,6 +79,9 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
   ///
   /// Use this when you need to perform different actions based on success/failure,
   /// such as navigation or showing specific error messages.
+  ///
+  /// Calls are deduplicated: if an operation is already in-flight, subsequent
+  /// calls are dropped and a debug warning is logged.
   ///
   /// Example:
   /// ```dart
@@ -85,6 +93,7 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
   /// ```
   @protected
   Future<ValueResult<S>> runWithValueResult(Future<S> Function() action) async {
+    if (_dropIfExecuting()) return ValueResult.failure(_inFlightException());
     setLoading();
     ValueResult<S>? result;
     await _execute(
@@ -105,6 +114,9 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
   /// Use this for background updates where showing a loading state
   /// would disrupt the user experience (e.g., auto-save, background sync).
   ///
+  /// Calls are deduplicated: if an operation is already in-flight, subsequent
+  /// calls are dropped and a debug warning is logged.
+  ///
   /// Example:
   /// ```dart
   /// Future<void> autoSave() => runSilent(
@@ -113,6 +125,7 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
   /// ```
   @protected
   Future<void> runSilent(Future<S> Function() action) async {
+    if (_dropIfExecuting()) return;
     await _execute(action, onSuccess: setData);
   }
 
@@ -120,6 +133,9 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
   ///
   /// Useful for providing instant feedback to users before server confirmation.
   /// If the action fails, automatically restores the previous state.
+  ///
+  /// Calls are deduplicated: if an operation is already in-flight, subsequent
+  /// calls are dropped and a debug warning is logged.
   ///
   /// Example:
   /// ```dart
@@ -130,13 +146,62 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
   /// ```
   @protected
   Future<void> runOptimistic({required S optimisticState, required Future<S> Function() action}) async {
+    if (_dropIfExecuting()) return;
     setData(optimisticState);
     await _executeWithRollback(action, onSuccess: setData);
   }
 
-  /// Core execution logic with automatic error handling and state management.
+  /// Runs the action, discarding results from superseded in-flight calls.
   ///
-  /// Catches all exceptions and converts them to [AppException] for consistent error handling.
+  /// Each call increments an internal generation counter. If a newer call
+  /// starts before an older one completes, the older result is silently
+  /// discarded. The loading state is set on every call so the UI stays reactive.
+  ///
+  /// Use this for search-as-you-type or any scenario where only the most
+  /// recent result matters.
+  ///
+  /// Example:
+  /// ```dart
+  /// Future<void> search(String query) => runLatest(() => repository.search(query));
+  /// ```
+  @protected
+  Future<void> runLatest(Future<S> Function() action) async {
+    final generation = ++_runLatestGeneration;
+    setLoading();
+    await _executeLatest(action, generation: generation);
+  }
+
+  /// Cancel-and-replace execution logic used by [runLatest].
+  ///
+  /// Results from calls whose generation does not match [_runLatestGeneration]
+  /// are silently discarded. [_isExecuting] is only cleared by the latest generation.
+  Future<void> _executeLatest(Future<S> Function() action, {required int generation}) async {
+    if (_tryHandleDisposed(setError)) return;
+
+    _isExecuting = true;
+
+    try {
+      final result = await action();
+
+      if (_runLatestGeneration != generation) return;
+      if (_tryHandleDisposed(setError)) return;
+
+      setData(result);
+    } on Exception catch (e, s) {
+      if (_runLatestGeneration != generation) return;
+      if (_tryHandleDisposed(setError)) return;
+
+      setError(e, s);
+    } on Error {
+      rethrow;
+    } finally {
+      if (_runLatestGeneration == generation) {
+        _isExecuting = false;
+      }
+    }
+  }
+
+  /// Core execution logic with automatic error handling and state management.
   Future<void> _execute<R>(
     Future<R> Function() action, {
     required void Function(R) onSuccess,
@@ -229,6 +294,18 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
       loading: () => 'Loading State',
       error: (e) => 'Error($e)',
     );
+  }
+
+  bool _dropIfExecuting() {
+    if (!_isExecuting) return false;
+    if (kDebugMode) {
+      logger.warning('[$runtimeType]: Dropped duplicate call — operation already in-flight.');
+    }
+    return true;
+  }
+
+  Exception _inFlightException() {
+    return Exception('[$runtimeType]: Call dropped because an operation was already in-flight.');
   }
 
   Exception _disposedException() {

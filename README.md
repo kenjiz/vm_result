@@ -118,12 +118,18 @@ class UserViewModel extends VMResult<User> {
 
 #### Guard methods
 
-| Method                                   | Loading state | Returns                  | Use when                                             |
-| ---------------------------------------- | ------------- | ------------------------ | ---------------------------------------------------- |
-| `run(action)`                            | Yes           | `Future<void>`           | Standard async fetch                                 |
-| `runWithValueResult(action)`             | Yes           | `Future<ValueResult<S>>` | Need to branch on success/failure (e.g., navigation) |
-| `runSilent(action)`                      | No            | `Future<void>`           | Background updates (auto-save, background sync)      |
-| `runOptimistic(optimisticState, action)` | No            | `Future<void>`           | Instant feedback with automatic rollback on failure  |
+| Method                                   | Loading state | Returns                  | Use when                                                |
+| ---------------------------------------- | ------------- | ------------------------ | ------------------------------------------------------- |
+| `run(action)`                            | Yes           | `Future<void>`           | Standard async fetch                                    |
+| `runWithValueResult(action)`             | Yes           | `Future<ValueResult<S>>` | Need to branch on success/failure (e.g., navigation)    |
+| `runSilent(action)`                      | No            | `Future<void>`           | Background updates (auto-save, background sync)         |
+| `runOptimistic(optimisticState, action)` | No            | `Future<void>`           | Instant feedback with automatic rollback on failure     |
+| `runLatest(action)`                      | Yes           | `Future<void>`           | Search-as-you-type; only the most recent result applies |
+
+**Deduplication behaviour:**
+
+- `run`, `runWithValueResult`, `runSilent`, and `runOptimistic` **drop** any call made while `isExecuting` is `true`. A debug warning is logged for each dropped call.
+- `runLatest` uses **cancel-and-replace** semantics. Every call is allowed through, but results from superseded in-flight calls are silently discarded via an internal generation counter. `isExecuting` stays `true` until the most recently dispatched call settles.
 
 #### Manual state setters (protected)
 
