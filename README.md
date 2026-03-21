@@ -13,8 +13,7 @@ A minimal, production-grade MVVM ViewModel contract for Flutter.
 - **`PaginatedResult<T>`** — A freezed model for accumulated paginated list state (items, page, hasNextPage, isLoadingMore).
 - **`VMResult<S>`** — Abstract `ChangeNotifier` ViewModel base class backed by `ValueListenable<Result<S>>`.
 - **`VMPaginated<S>`** — Extends `VMResult` with built-in `loadFirst`, `loadMore`, and `refresh` pagination logic.
-- **`VMResultEffect<S, UE>`** — Extends `VMResult` with a broadcast `Stream` for one-shot UI side effects.
-- **`ResultBuilder<T>`** — A thin `ValueListenableBuilder` wrapper for reactive UI.
+- **`VMResultEffect<S, UE>`** — Extends `VMResult` with a broadcast `Stream` for one-shot UI side effects.- **`runStream`** — Subscribe to a long-lived `Stream<S>` (WebSocket, Firestore, SSE) directly from a ViewModel with automatic loading/error state management and dispose-safe teardown.- **`ResultBuilder<T>`** — A thin `ValueListenableBuilder` wrapper for reactive UI.
 - **`EffectListener`** — A `StatefulWidget` that subscribes to an effect stream and dispatches callbacks to the UI.
 - Built-in debug-mode state transition logging via [talker_flutter](https://pub.dev/packages/talker_flutter).
 - Dispose safety — all state updates and effect emissions are silently dropped after `dispose()`.
@@ -127,6 +126,8 @@ class UserViewModel extends VMResult<User> {
 | `runSilent(action)`                      | No            | `Future<void>`           | Background updates (auto-save, background sync)         |
 | `runOptimistic(optimisticState, action)` | No            | `Future<void>`           | Instant feedback with automatic rollback on failure     |
 | `runLatest(action)`                      | Yes           | `Future<void>`           | Search-as-you-type; only the most recent result applies |
+| `runStream(factory)`                     | Yes (once)    | `void`                   | Long-lived streams (WebSocket, Firestore, SSE)          |
+| `cancelStream()`                         | —             | `Future<void>`           | Explicit disconnect while preserving current state      |
 
 **Deduplication behaviour:**
 
@@ -149,6 +150,41 @@ vm.disposed     // bool — true after dispose() is called
 ```
 
 > **Important:** Always call `dispose()` in your widget's `dispose()` method to prevent memory leaks. The class handles this via `ChangeNotifier.dispose()`.
+
+---
+
+### `runStream` — Real-Time / Long-Lived Streams
+
+Use `runStream` when your data source is a `Stream<S>` that emits values continuously — WebSocket connections, Firestore `snapshots()`, SSE feeds, Bluetooth characteristic notifications, etc.
+
+```dart
+class ChatViewModel extends VMResult<List<Message>> {
+  ChatViewModel(this._socket) : super(const Result.initial());
+
+  final ChatSocket _socket;
+
+  void connect() => runStream(() => _socket.messageStream);
+  Future<void> disconnect() => cancelStream();
+}
+```
+
+**Behaviour:**
+
+| Event                   | State transition                              |
+| ----------------------- | --------------------------------------------- |
+| Subscription opens      | `ResultLoading` (once)                        |
+| Each emitted event      | `ResultData(event)`                           |
+| Stream error            | `ResultError` + subscription cancelled        |
+| Stream closes (onDone)  | Last `ResultData` kept; `isExecuting → false` |
+| `cancelStream()` called | Last state preserved; `isExecuting → false`   |
+| `dispose()` called      | Subscription cancelled automatically          |
+
+**Reconnect / source-swap:** Calling `runStream` while already subscribed replaces the active subscription — no manual `cancelStream()` needed first.
+
+```dart
+// Reconnect on network restore — just call connect() again
+void onNetworkRestored() => connect();
+```
 
 ---
 
@@ -401,6 +437,9 @@ ViewModel Layer
   └── VMResultEffect<S, UE>  — ViewModel with effects
   └── VMPaginated<S>         — ViewModel for paginated lists
         └── VMResult<S>      — base ViewModel (ChangeNotifier + ValueListenable)
+                               Future guards: run / runSilent / runOptimistic / runWithValueResult
+                               Search guard:  runLatest (cancel-and-replace)
+                               Stream guard:  runStream / cancelStream (long-lived streams)
 
 Model Layer
   └── Result<T>              — 4-state async value (initial/loading/data/error)

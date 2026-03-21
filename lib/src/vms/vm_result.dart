@@ -151,6 +151,66 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
     await _executeWithRollback(action, onSuccess: setData);
   }
 
+  /// Subscribes to a long-lived stream, emitting each event as [ResultData].
+  ///
+  /// Lifecycle:
+  /// 1. Sets the state to [ResultLoading] once when the subscription opens.
+  /// 2. Each emitted event transitions the state to `ResultData(event)`.
+  /// 3. A stream error transitions the state to [ResultError] and cancels the
+  ///    subscription.
+  /// 4. When the stream closes naturally (onDone), the last data state is kept
+  ///    and [isExecuting] is cleared.
+  ///
+  /// Calling [runStream] while a subscription is already active **replaces** the
+  /// current subscription. The old one is cancelled before the new one opens,
+  /// so reconnect and source-swap require no manual teardown.
+  ///
+  /// The active subscription is automatically cancelled on [dispose].
+  ///
+  /// Example (WebSocket chat):
+  /// ```dart
+  /// void connect() => runStream(() => _socket.messages);
+  /// ```
+  @protected
+  void runStream(Stream<S> Function() factory) {
+    if (_disposed) return;
+    _streamSub?.cancel();
+    _isExecuting = true;
+    setLoading();
+    _streamSub = factory().listen(
+      (event) {
+        if (_disposed) return;
+        setData(event);
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        if (_disposed) return;
+        _isExecuting = false;
+        final exception = error is Exception ? error : Exception(error.toString());
+        setError(exception, stackTrace);
+        _streamSub = null;
+      },
+      onDone: () {
+        if (_disposed) return;
+        _isExecuting = false;
+        _streamSub = null;
+      },
+      cancelOnError: true,
+    );
+  }
+
+  /// Cancels the active stream subscription opened by [runStream], if any.
+  ///
+  /// The current state is preserved. Use this to explicitly disconnect (e.g.,
+  /// when the user navigates away) without waiting for the stream to close.
+  @protected
+  Future<void> cancelStream() async {
+    await _streamSub?.cancel();
+    _streamSub = null;
+    _isExecuting = false;
+  }
+
+  StreamSubscription<S>? _streamSub;
+
   /// Runs the action, discarding results from superseded in-flight calls.
   ///
   /// Each call increments an internal generation counter. If a newer call
@@ -330,6 +390,8 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
   @override
   void dispose() {
     _disposed = true;
+    _streamSub?.cancel();
+    _streamSub = null;
     super.dispose();
   }
 }

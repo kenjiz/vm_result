@@ -43,6 +43,21 @@ Implemented:
 
 ---
 
+### ~~1.3 `runStream` / `cancelStream` — Stream-Based Operations~~ ✅
+
+Implemented in `VMResult`:
+
+- `runStream(Stream<S> Function() factory)` — subscribes to a long-lived stream (WebSocket, Firestore `snapshots()`, SSE, etc.).
+  - Transitions to `ResultLoading` once on connect.
+  - Each emitted event transitions to `ResultData(event)`.
+  - A stream error transitions to `ResultError` and cancels the subscription.
+  - Natural stream close (`onDone`) keeps the last data state and clears `isExecuting`.
+- Calling `runStream` while already subscribed **replaces** the active subscription — no manual teardown needed for reconnect or source-swap.
+- `cancelStream()` — explicit teardown that preserves the current state and clears `isExecuting`.
+- `dispose()` automatically cancels the active subscription to prevent memory leaks.
+
+---
+
 ## Phase 2 — Package Health
 
 ### 2.1 CI Pipeline
@@ -70,5 +85,6 @@ Populate `CHANGELOG.md`, verify `pubspec.yaml` metadata (homepage, repository, i
 | 0.1     | Unit tests                               | Critical |
 | ~~1.1~~ | ~~In-flight deduplication~~ ✅           | ~~High~~ |
 | ~~1.2~~ | ~~`PaginatedResult` + `VMPaginated`~~ ✅ | ~~High~~ |
+| ~~1.3~~ | ~~`runStream` / `cancelStream`~~ ✅      | ~~High~~ |
 | 2.1     | CI pipeline                              | Medium   |
 | 2.2     | pub.dev publishing                       | Low      |
