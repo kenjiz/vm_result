@@ -13,7 +13,8 @@ A minimal, production-grade MVVM ViewModel contract for Flutter.
 - **`PaginatedResult<T>`** — A freezed model for accumulated paginated list state (items, page, hasNextPage, isLoadingMore).
 - **`VMResult<S>`** — Abstract `ChangeNotifier` ViewModel base class backed by `ValueListenable<Result<S>>`.
 - **`VMPaginated<S>`** — Extends `VMResult` with built-in `loadFirst`, `loadMore`, and `refresh` pagination logic.
-- **`VMResultEffect<S, UE>`** — Extends `VMResult` with a broadcast `Stream` for one-shot UI side effects.- **`runStream`** — Subscribe to a long-lived `Stream<S>` (WebSocket, Firestore, SSE) directly from a ViewModel with automatic loading/error state management and dispose-safe teardown.- **`ResultBuilder<T>`** — A thin `ValueListenableBuilder` wrapper for reactive UI.
+- **`VMResultEffect<S, UE>`** — Extends `VMResult` with a broadcast `Stream` for one-shot UI side effects.
+- **`runStream`** — Subscribe to a long-lived `Stream<S>` (WebSocket, Firestore, SSE) directly from a ViewModel with automatic loading/error state management and dispose-safe teardown.- **`ResultBuilder<T>`** — A thin `ValueListenableBuilder` wrapper for reactive UI.
 - **`EffectListener`** — A `StatefulWidget` that subscribes to an effect stream and dispatches callbacks to the UI.
 - Built-in debug-mode state transition logging via [talker_flutter](https://pub.dev/packages/talker_flutter).
 - Dispose safety — all state updates and effect emissions are silently dropped after `dispose()`.
