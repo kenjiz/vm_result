@@ -1,0 +1,258 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:vm_result/src/logging/logger.dart';
+import 'package:vm_result/src/models/result.dart';
+
+abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Result<S>> {
+  VMResult(Result<S> initial) : _state = initial;
+
+  Result<S> _state;
+  bool _isExecuting = false;
+
+  /// Whether the VM is currently executing an async operation.
+  bool get isExecuting => _isExecuting;
+
+  bool _disposed = false;
+
+  /// Whether this VM has been disposed.
+  bool get disposed => _disposed;
+
+  @override
+  Result<S> get value => _state;
+
+  /// Alias for [value]
+  Result<S> get state => _state;
+
+  /// Sets the state to loading.
+  ///
+  /// Use this when starting a long-running operation.
+  /// Typically called automatically by guard methods.
+  @protected
+  void setLoading() {
+    if (_disposed) return;
+    _set(Result<S>.loading());
+  }
+
+  /// Sets the state to data with the provided value.
+  ///
+  /// Use this when an operation completes successfully.
+  /// Typically called automatically by guard methods.
+  @protected
+  void setData(S data) {
+    if (_disposed) return;
+    _set(Result.data(data));
+  }
+
+  /// Sets the state to error and logs it for debugging.
+  ///
+  /// Use this when an operation fails.
+  /// Typically called automatically by guard methods.
+  @protected
+  void setError(Exception error, [StackTrace? stackTrace]) {
+    if (_disposed) return;
+    logger.error('ViewModel Error: $error, stackTrace: $stackTrace');
+    _set(Result<S>.error(error));
+  }
+
+  /// Wraps an async action with automatic loading state management.
+  ///
+  /// Shows loading state → executes action → sets data or error.
+  /// This is the most common guard pattern for simple async operations.
+  ///
+  /// Example:
+  /// ```dart
+  /// Future<void> loadUser() => run(() => repository.getUser());
+  /// ```
+  @protected
+  Future<void> run(Future<S> Function() action) async {
+    setLoading();
+    await _execute(action, onSuccess: setData);
+  }
+
+  /// Similar to [run] but returns a [ValueResult] for conditional logic.
+  ///
+  /// Use this when you need to perform different actions based on success/failure,
+  /// such as navigation or showing specific error messages.
+  ///
+  /// Example:
+  /// ```dart
+  /// final result = await runWithValueResult(() => repository.login(email, pass));
+  /// result.when(
+  ///   success: (user) => navigateToHome(),
+  ///   failure: (error) => showErrorDialog(error.message),
+  /// );
+  /// ```
+  @protected
+  Future<ValueResult<S>> runWithValueResult(Future<S> Function() action) async {
+    setLoading();
+    ValueResult<S>? result;
+    await _execute(
+      action,
+      onSuccess: (data) {
+        setData(data);
+        result = ValueResult.success(data);
+      },
+      onError: (error) {
+        result = ValueResult.failure(error);
+      },
+    );
+    return result ?? ValueResult.failure(_disposedException());
+  }
+
+  /// Updates state silently without showing loading indicator.
+  ///
+  /// Use this for background updates where showing a loading state
+  /// would disrupt the user experience (e.g., auto-save, background sync).
+  ///
+  /// Example:
+  /// ```dart
+  /// Future<void> autoSave() => runSilent(
+  ///   () => repository.savePreferences(prefs),
+  /// );
+  /// ```
+  @protected
+  Future<void> runSilent(Future<S> Function() action) async {
+    await _execute(action, onSuccess: setData);
+  }
+
+  /// Sets optimistic state immediately, then updates with real result or rolls back.
+  ///
+  /// Useful for providing instant feedback to users before server confirmation.
+  /// If the action fails, automatically restores the previous state.
+  ///
+  /// Example:
+  /// ```dart
+  /// Future<void> loadMore() => runOptimistic(
+  ///   optimisticState: current.copyWith(isLoadingMore: true),
+  ///   action: () => repository.getNextPage(),
+  /// );
+  /// ```
+  @protected
+  Future<void> runOptimistic({required S optimisticState, required Future<S> Function() action}) async {
+    setData(optimisticState);
+    await _executeWithRollback(action, onSuccess: setData);
+  }
+
+  /// Core execution logic with automatic error handling and state management.
+  ///
+  /// Catches all exceptions and converts them to [AppException] for consistent error handling.
+  Future<void> _execute<R>(
+    Future<R> Function() action, {
+    required void Function(R) onSuccess,
+    void Function(Exception)? onError,
+  }) async {
+    if (_tryHandleDisposed(onError ?? setError)) return;
+
+    _isExecuting = true;
+
+    try {
+      final result = await action();
+
+      if (_tryHandleDisposed(onError ?? setError)) return;
+
+      onSuccess(result);
+    } on Exception catch (e, s) {
+      if (_tryHandleDisposed(onError ?? setError)) return;
+
+      setError(e, s);
+      onError?.call(e);
+    } on Error {
+      rethrow;
+    } finally {
+      _isExecuting = false;
+    }
+  }
+
+  /// Execution logic with automatic state rollback on error.
+  ///
+  /// Preserves the previous state before executing the action. If the action
+  /// fails, automatically restores the saved state before setting error.
+  Future<void> _executeWithRollback<R>(Future<R> Function() action, {required void Function(R) onSuccess}) async {
+    if (_isDisposed) {
+      return;
+    }
+
+    _isExecuting = true;
+    final previousState = _state;
+    try {
+      final result = await action();
+
+      if (_tryHandleDisposed()) return;
+
+      onSuccess(result);
+    } on Exception catch (e, s) {
+      if (_tryHandleDisposed()) return;
+
+      _rollback(previousState);
+      setError(e, s);
+    } on Error {
+      rethrow;
+    } finally {
+      _isExecuting = false;
+    }
+  }
+
+  /// Restores a previous state without triggering error handling.
+  ///
+  /// Used internally by [_executeWithRollback] to revert optimistic updates.
+  void _rollback(Result<S> previousState) {
+    if (_disposed) return;
+    if (previousState == _state) return; // No need to rollback if state hasn't changed
+    _state = previousState;
+    notifyListeners();
+  }
+
+  /// Sets a new state and notifies listeners if not disposed.
+  ///
+  /// Automatically logs state transitions in debug mode for easier debugging.
+  void _set(Result<S> next) {
+    if (_disposed) return;
+    if (next == _state) return; // No need to update if state hasn't changed
+    _logTransition(_state, next);
+    _state = next;
+    notifyListeners();
+  }
+
+  /// Logs state transitions in debug mode for easier debugging.
+  void _logTransition(Result<S> prev, Result<S> next) {
+    if (kDebugMode) {
+      logger.info('[$runtimeType]: State transition: ${_formatState(prev)} → ${_formatState(next)}');
+    }
+  }
+
+  /// Formats a [Result] into a readable string for logging.
+  String _formatState(Result<S> state) {
+    return state.when(
+      initial: () => 'Initial State',
+      data: (d) => 'Data(${d.runtimeType}): $d',
+      loading: () => 'Loading State',
+      error: (e) => 'Error($e)',
+    );
+  }
+
+  Exception _disposedException() {
+    logger.warning('Attempted to perform an operation on a DISPOSED ViewModel: $runtimeType');
+    return Exception('Operation canceled because the $runtimeType was disposed.');
+  }
+
+  bool get _isDisposed => _disposed;
+
+  bool _tryHandleDisposed([void Function(Exception)? onError]) {
+    if (!_isDisposed) {
+      return false;
+    }
+
+    onError?.call(_disposedException());
+    return true;
+  }
+
+  /// Marks the ViewModel as disposed and prevents further state updates.
+  ///
+  /// Must be called manually in your widget's `dispose()` method to prevent memory leaks.
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+}
