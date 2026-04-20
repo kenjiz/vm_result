@@ -129,10 +129,13 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
     await _execute(action, onSuccess: setData);
   }
 
-  /// Sets optimistic state immediately, then updates with real result or rolls back.
+  /// Sets optimistic state immediately, then updates with real result or rolls back on error.
   ///
   /// Useful for providing instant feedback to users before server confirmation.
-  /// If the action fails, automatically restores the previous state.
+  ///
+  /// On failure the previous state is transiently restored before [ResultError]
+  /// is set, causing three state notifications: `optimistic → previous → error`.
+  /// The terminal state after a failed action is always [ResultError].
   ///
   /// Calls are deduplicated: if an operation is already in-flight, subsequent
   /// calls are dropped and a debug warning is logged.
@@ -252,10 +255,11 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
       if (_tryHandleDisposed(setError)) return;
 
       setError(e, s);
-    } on Error {
+    } on Error catch (e, s) {
+      if (kDebugMode) logger.error('[$runtimeType] Unhandled Dart Error in runLatest: $e', s);
       rethrow;
     } finally {
-      if (_runLatestGeneration == generation) {
+      if (_runLatestGeneration == generation || _disposed) {
         _isExecuting = false;
       }
     }
@@ -282,7 +286,8 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
 
       setError(e, s);
       onError?.call(e);
-    } on Error {
+    } on Error catch (e, s) {
+      if (kDebugMode) logger.error('[$runtimeType] Unhandled Dart Error in _execute: $e', s);
       rethrow;
     } finally {
       _isExecuting = false;
@@ -294,7 +299,7 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
   /// Preserves the previous state before executing the action. If the action
   /// fails, automatically restores the saved state before setting error.
   Future<void> _executeWithRollback<R>(Future<R> Function() action, {required void Function(R) onSuccess}) async {
-    if (_isDisposed) {
+    if (_disposed) {
       return;
     }
 
@@ -311,7 +316,8 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
 
       _rollback(previousState);
       setError(e, s);
-    } on Error {
+    } on Error catch (e, s) {
+      if (kDebugMode) logger.error('[$runtimeType] Unhandled Dart Error in runOptimistic: $e', s);
       rethrow;
     } finally {
       _isExecuting = false;
@@ -373,10 +379,8 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
     return Exception('Operation canceled because the $runtimeType was disposed.');
   }
 
-  bool get _isDisposed => _disposed;
-
   bool _tryHandleDisposed([void Function(Exception)? onError]) {
-    if (!_isDisposed) {
+    if (!_disposed) {
       return false;
     }
 

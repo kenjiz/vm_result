@@ -1,6 +1,15 @@
 name: vm_result
 description: "A minimal MVVM ViewModel contract for Flutter using ChangeNotifier and ValueListenable<Result<T>>."
-version: 0.0.1
+version: 0.1.0
+homepage: https://github.com/kenjiz/vm_result
+repository: https://github.com/kenjiz/vm_result
+issue_tracker: https://github.com/kenjiz/vm_result/issues
+
+topics:
+  - flutter
+  - mvvm
+  - state-management
+  - result-type
 
 environment:
   sdk: ^3.10.0
@@ -17,36 +26,3 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   freezed: ^3.2.5
   build_runner: ^2.11.1
-
-
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  

@@ -29,6 +29,13 @@ void main() {
     });
 
     group('boolean getters', () {
+      test('isInitial is true only for initial state', () {
+        expect(Result<int>.initial().isInitial, isTrue);
+        expect(Result<int>.loading().isInitial, isFalse);
+        expect(Result.data(1).isInitial, isFalse);
+        expect(Result<int>.error(Exception()).isInitial, isFalse);
+      });
+
       test('isLoading is true only for loading state', () {
         expect(Result<int>.initial().isLoading, isFalse);
         expect(Result<int>.loading().isLoading, isTrue);

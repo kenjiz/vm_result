@@ -16,12 +16,21 @@ class EffectListener<VM extends VMResultEffect<S, UE>, S, UE extends BaseUiEffec
 
 class _EffectListenerState<VM extends VMResultEffect<S, UE>, S, UE extends BaseUiEffect>
     extends State<EffectListener<VM, S, UE>> {
-  late final StreamSubscription<UE>? _effectSubscription;
+  StreamSubscription<UE>? _effectSubscription;
 
   @override
   void initState() {
     super.initState();
     _effectSubscription = widget.vm.effects.listen(_onEffectsChanged);
+  }
+
+  @override
+  void didUpdateWidget(EffectListener<VM, S, UE> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.vm != widget.vm) {
+      _effectSubscription?.cancel();
+      _effectSubscription = widget.vm.effects.listen(_onEffectsChanged);
+    }
   }
 
   @override

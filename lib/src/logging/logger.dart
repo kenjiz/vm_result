@@ -1,10 +1,9 @@
-import 'dart:io';
-
+import 'package:flutter/foundation.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
 final logger = TalkerFlutter.init(
   settings: TalkerSettings(
-    enabled: !Platform.environment.containsKey('FLUTTER_TEST'), // Disable logger in tests
+    enabled: kDebugMode,
     titles: {
       TalkerKey.error: 'ERROR',
       TalkerKey.warning: 'WARNING',
