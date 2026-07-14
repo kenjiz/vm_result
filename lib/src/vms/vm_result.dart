@@ -71,6 +71,7 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
   @protected
   Future<void> run(Future<S> Function() action) async {
     if (_dropIfExecuting()) return;
+    _isExecuting = true;
     setLoading();
     await _execute(action, onSuccess: setData);
   }
@@ -94,8 +95,13 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
   @protected
   Future<ValueResult<S>> runWithValueResult(Future<S> Function() action) async {
     if (_dropIfExecuting()) return ValueResult.failure(_inFlightException());
+
+    _isExecuting = true;
+
     setLoading();
+
     ValueResult<S>? result;
+
     await _execute(
       action,
       onSuccess: (data) {
@@ -106,6 +112,7 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
         result = ValueResult.failure(error);
       },
     );
+
     return result ?? ValueResult.failure(_disposedException());
   }
 
@@ -126,6 +133,10 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
   @protected
   Future<void> runSilent(Future<S> Function() action) async {
     if (_dropIfExecuting()) return;
+
+    _isExecuting = true;
+    notifyListeners();
+
     await _execute(action, onSuccess: setData);
   }
 
@@ -147,7 +158,10 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
   @protected
   Future<void> runOptimistic({required S optimisticState, required Future<S> Function() action}) async {
     if (_dropIfExecuting()) return;
+
+    _isExecuting = true;
     setData(optimisticState);
+
     await _executeWithRollback(action, onSuccess: setData);
   }
 
@@ -226,6 +240,7 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
   /// ```
   @protected
   Future<void> runLatest(Future<S> Function() action) async {
+    _isExecuting = true;
     final generation = ++_runLatestGeneration;
     setLoading();
     await _executeLatest(action, generation: generation);
@@ -270,24 +285,32 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
     if (_tryHandleDisposed(onError ?? setError)) return;
 
     _isExecuting = true;
-    notifyListeners();
 
     try {
       final result = await action();
 
       if (_tryHandleDisposed(onError ?? setError, false)) return;
 
+      // Set to false before onSuccess so listener sees isExecuting=false
+      _isExecuting = false;
+
       onSuccess(result);
     } on Exception catch (e, s) {
       if (_tryHandleDisposed(onError ?? setError)) return;
+
+      // Set to false before error state notification
+      _isExecuting = false;
 
       setError(e, s);
       onError?.call(e);
     } on Error {
       rethrow;
     } finally {
-      _isExecuting = false;
-      notifyListeners();
+      if (_isExecuting) {
+        _isExecuting = false;
+
+        if (!disposed) notifyListeners();
+      }
     }
   }
 
