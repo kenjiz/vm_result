@@ -1,5 +1,4 @@
-/// A minimal, production-grade MVVM ViewModel contract for Flutter using
-/// ChangeNotifier and ValueListenable<Result<T>>.
+/// A minimal, production-grade MVVM ViewModel contract for Flutter.
 library vm_result;
 
 export 'src/models/paginated_result.dart';
