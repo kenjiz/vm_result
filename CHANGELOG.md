@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-07-14
+
+### Added
+- Added `LICENSE` file (MIT License).
+- Added a runnable Flutter example project under `example/` demonstrating the core usage of ViewModels, builders, and listeners.
+
+### Fixed
+- Fixed package resolution and format validation issues in the GitHub Actions CI workflow.
+- Fixed missing `repository` and `issue_tracker` fields in `pubspec.yaml`.
+
 ## [0.1.0] - 2026-07-14
 
 ### Added
@@ -34,7 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial Release of `vm_result` core MVVM contracts, widgets, pagination, stream subscriptions, and helper guards.
 
-[Unreleased]: https://github.com/kenjiz/vm_result/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/kenjiz/vm_result/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/kenjiz/vm_result/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/kenjiz/vm_result/compare/v0.0.2...v0.1.0
 [0.0.2]: https://github.com/kenjiz/vm_result/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/kenjiz/vm_result/releases/tag/v0.0.1
