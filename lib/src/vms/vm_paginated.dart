@@ -107,6 +107,12 @@ abstract class VMPaginated<S> extends VMResult<PaginatedResult<S>> {
         );
       }
 
+      // Re-read current state after the async gap to ensure it hasn't changed/refreshed
+      final activeData = state.asData?.value;
+      if (activeData == null || activeData.page != current.page) {
+        return ValueResult.failure(Exception('State was modified or refreshed during fetch.'));
+      }
+
       final updated = PaginatedResult<S>(
         items: [...current.items, ...result.items],
         page: nextPage,
