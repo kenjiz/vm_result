@@ -261,17 +261,23 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
       if (_runLatestGeneration != generation) return;
       if (_tryHandleDisposed(setError)) return;
 
+      // set to false before notifying data
+      _isExecuting = false;
       setData(result);
     } on Exception catch (e, s) {
       if (_runLatestGeneration != generation) return;
       if (_tryHandleDisposed(setError)) return;
 
+      // set to false before notifying error
+      _isExecuting = false;
+
       setError(e, s);
     } on Error {
       rethrow;
     } finally {
-      if (_runLatestGeneration == generation) {
+      if (_runLatestGeneration == generation && _isExecuting) {
         _isExecuting = false;
+        if (!disposed) notifyListeners();
       }
     }
   }
@@ -319,27 +325,35 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
   /// Preserves the previous state before executing the action. If the action
   /// fails, automatically restores the saved state before setting error.
   Future<void> _executeWithRollback<R>(Future<R> Function() action, {required void Function(R) onSuccess}) async {
-    if (_isDisposed) {
-      return;
-    }
-
+    if (_isDisposed) return;
     _isExecuting = true;
+
     final previousState = _state;
+
     try {
       final result = await action();
 
       if (_tryHandleDisposed()) return;
 
+      // set to false before notifying success
+      _isExecuting = false;
+
       onSuccess(result);
     } on Exception catch (e, s) {
       if (_tryHandleDisposed()) return;
 
+      // set to false before rollback and error notification
+      _isExecuting = false;
       _rollback(previousState);
+
       setError(e, s);
     } on Error {
       rethrow;
     } finally {
-      _isExecuting = false;
+      if (_isExecuting) {
+        _isExecuting = false;
+        if (!disposed) notifyListeners();
+      }
     }
   }
 

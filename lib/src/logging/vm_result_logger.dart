@@ -29,7 +29,7 @@ import 'package:flutter/foundation.dart';
 ///
 /// ```
 ///
-abstract class VmResultLogger {
+abstract class VMResultLogger {
   void info(String message);
 
   void warning(String message);
@@ -38,7 +38,7 @@ abstract class VmResultLogger {
 }
 
 /// A default logger implementation that uses standard [dart:developer] log.
-class DefaultVMResultLogger implements VmResultLogger {
+class DefaultVMResultLogger implements VMResultLogger {
   const DefaultVMResultLogger();
 
   @override
@@ -70,5 +70,5 @@ class DefaultVMResultLogger implements VmResultLogger {
 
 /// Global configuration for the vm_result package logging.
 class VMResultLogging {
-  static VmResultLogger logger = const DefaultVMResultLogger();
+  static VMResultLogger logger = const DefaultVMResultLogger();
 }

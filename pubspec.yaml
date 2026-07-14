@@ -1,6 +1,6 @@
 name: vm_result
 description: "A minimal MVVM ViewModel contract for Flutter using ChangeNotifier and ValueListenable<Result<T>>."
-version: 0.0.2
+version: 0.1.0
 
 environment:
   sdk: ^3.12.0
