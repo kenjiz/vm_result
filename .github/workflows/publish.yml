@@ -1,0 +1,29 @@
+name: Publish to pub.dev
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*' # Triggers on version tag push, e.g., v0.1.0
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  publish:
+    permissions:
+      id-token: write # Required for requesting OIDC JWT
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Publish package
+        run: dart pub publish --force

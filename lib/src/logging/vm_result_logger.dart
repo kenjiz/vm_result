@@ -30,15 +30,19 @@ import 'package:flutter/foundation.dart';
 /// ```
 ///
 abstract class VMResultLogger {
+  /// Logs an informational message.
   void info(String message);
 
+  /// Logs a warning message.
   void warning(String message);
 
+  /// Logs an error message with an optional stack trace.
   void error(String message, [StackTrace? stackTrace]);
 }
 
 /// A default logger implementation that uses standard [dart:developer] log.
 class DefaultVMResultLogger implements VMResultLogger {
+  /// Creates a constant [DefaultVMResultLogger].
   const DefaultVMResultLogger();
 
   @override
@@ -68,7 +72,10 @@ class DefaultVMResultLogger implements VMResultLogger {
   }
 }
 
-/// Global configuration for the vm_result package logging.
+/// Global configuration registry for the vm_result package logging.
 class VMResultLogging {
+  /// The active [VMResultLogger] instance.
+  ///
+  /// Defaults to [DefaultVMResultLogger] which prints to standard [dart:developer] logs.
   static VMResultLogger logger = const DefaultVMResultLogger();
 }
