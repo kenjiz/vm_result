@@ -275,7 +275,7 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
     try {
       final result = await action();
 
-      if (_tryHandleDisposed(onError ?? setError)) return;
+      if (_tryHandleDisposed(onError ?? setError, false)) return;
 
       onSuccess(result);
     } on Exception catch (e, s) {
@@ -370,19 +370,22 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
     return Exception('[$runtimeType]: Call dropped because an operation was already in-flight.');
   }
 
-  Exception _disposedException() {
-    logger.warning('Attempted to perform an operation on a DISPOSED ViewModel: $runtimeType');
+  Exception _disposedException([bool logWarning = true]) {
+    if (logWarning) {
+      logger.warning('Attempted to perform an operation on a DISPOSED ViewModel: $runtimeType');
+    }
+
     return Exception('Operation canceled because the $runtimeType was disposed.');
   }
 
   bool get _isDisposed => _disposed;
 
-  bool _tryHandleDisposed([void Function(Exception)? onError]) {
+  bool _tryHandleDisposed([void Function(Exception)? onError, bool logWarning = true]) {
     if (!_isDisposed) {
       return false;
     }
 
-    onError?.call(_disposedException());
+    onError?.call(_disposedException(logWarning));
     return true;
   }
 
