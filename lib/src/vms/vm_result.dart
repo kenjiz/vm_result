@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:vm_result/src/logging/logger.dart';
+import 'package:vm_result/src/logging/vm_result_logger.dart';
 import 'package:vm_result/src/models/result.dart';
 
 abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Result<S>> {
@@ -52,7 +52,7 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
   @protected
   void setError(Exception error, [StackTrace? stackTrace]) {
     if (_disposed) return;
-    logger.error('ViewModel Error: $error, stackTrace: $stackTrace');
+    VMResultLogging.logger.error('ViewModel Error: $error, stackTrace: $stackTrace');
     _set(Result<S>.error(error));
   }
 
@@ -367,7 +367,7 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
   /// Logs state transitions in debug mode for easier debugging.
   void _logTransition(Result<S> prev, Result<S> next) {
     if (kDebugMode) {
-      logger.info('[$runtimeType]: State transition: ${_formatState(prev)} → ${_formatState(next)}');
+      VMResultLogging.logger.info('[$runtimeType]: State transition: ${_formatState(prev)} → ${_formatState(next)}');
     }
   }
 
@@ -384,7 +384,7 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
   bool _dropIfExecuting() {
     if (!_isExecuting) return false;
     if (kDebugMode) {
-      logger.warning('[$runtimeType]: Dropped duplicate call — operation already in-flight.');
+      VMResultLogging.logger.warning('[$runtimeType]: Dropped duplicate call — operation already in-flight.');
     }
     return true;
   }
@@ -395,7 +395,7 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
 
   Exception _disposedException([bool logWarning = true]) {
     if (logWarning) {
-      logger.warning('Attempted to perform an operation on a DISPOSED ViewModel: $runtimeType');
+      VMResultLogging.logger.warning('Attempted to perform an operation on a DISPOSED ViewModel: $runtimeType');
     }
 
     return Exception('Operation canceled because the $runtimeType was disposed.');

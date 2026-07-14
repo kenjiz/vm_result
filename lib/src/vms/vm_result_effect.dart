@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:vm_result/src/logging/logger.dart';
+import 'package:vm_result/src/logging/vm_result_logger.dart';
 import 'package:vm_result/src/models/ui_effect.dart';
 import 'package:vm_result/src/vms/vm_result.dart';
 
@@ -13,7 +13,7 @@ abstract class VMResultEffect<S, UE extends BaseUiEffect> extends VMResult<S> {
 
   void emitEffect(UE effect) {
     if (disposed) {
-      logger.warning('Attempted to emit effect on disposed ViewModel: $runtimeType: $effect');
+      VMResultLogging.logger.warning('Attempted to emit effect on disposed ViewModel: $runtimeType: $effect');
       return;
     }
     _effectsController.add(effect);

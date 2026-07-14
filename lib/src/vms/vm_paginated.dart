@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:vm_result/src/logging/logger.dart';
+import 'package:vm_result/src/logging/vm_result_logger.dart';
 import 'package:vm_result/src/models/paginated_result.dart';
 import 'package:vm_result/src/models/result.dart';
 import 'package:vm_result/src/vms/vm_result.dart';
@@ -122,7 +122,7 @@ abstract class VMPaginated<S> extends VMResult<PaginatedResult<S>> {
       return ValueResult.success(updated);
     } on Exception catch (e, s) {
       if (!disposed) {
-        logger.error('[$runtimeType] loadMore error: $e', s);
+        VMResultLogging.logger.error('[$runtimeType] loadMore error: $e', s);
         setData(current.copyWith(isLoadingMore: false));
       }
       return ValueResult.failure(e);
