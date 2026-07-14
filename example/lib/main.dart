@@ -25,11 +25,11 @@ class ShowSnackbar extends ProfileUiEffect {
 /// A ViewModel that manages user profile state.
 class ProfileViewModel extends VMResultEffect<UserProfile, ProfileUiEffect> {
   ProfileViewModel()
-      : super(
-          const Result.data(
-            UserProfile(name: 'Enrique Chua', bio: 'Flutter & Dart Developer'),
-          ),
-        );
+    : super(
+        const Result.data(
+          UserProfile(name: 'Enrique Chua', bio: 'Flutter & Dart Developer'),
+        ),
+      );
 
   /// Simulates updating the user profile.
   Future<void> updateBio(String newBio) async {
@@ -38,7 +38,9 @@ class ProfileViewModel extends VMResultEffect<UserProfile, ProfileUiEffect> {
 
     // Standard run guard showing loading spinner while saving
     await run(() async {
-      await Future<void>.delayed(const Duration(seconds: 1)); // simulate network
+      await Future<void>.delayed(
+        const Duration(seconds: 1),
+      ); // simulate network
 
       // Simulate occasional error for demonstration
       if (newBio.toLowerCase().contains('error')) {
@@ -104,9 +106,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         listener: (context, effect) {
           switch (effect) {
             case ShowSnackbar(:final message):
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(message)),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(message)));
           }
         },
         child: Padding(
@@ -118,7 +120,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 listenable: _viewModel,
                 builder: (context, state, child) {
                   return state.when(
-                    initial: () => const Center(child: Text('No profile loaded')),
+                    initial: () =>
+                        const Center(child: Text('No profile loaded')),
                     loading: () => const Center(
                       child: Padding(
                         padding: EdgeInsets.all(32.0),
@@ -153,12 +156,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Text(
                               error.toString(),
                               style: TextStyle(
-                                color: Theme.of(context).colorScheme.onErrorContainer,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onErrorContainer,
                               ),
                             ),
                             const SizedBox(height: 8),
                             ElevatedButton(
-                              onPressed: () => _viewModel.updateBio(_bioController.text),
+                              onPressed: () =>
+                                  _viewModel.updateBio(_bioController.text),
                               child: const Text('Retry'),
                             ),
                           ],
