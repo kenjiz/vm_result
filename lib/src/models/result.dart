@@ -92,13 +92,13 @@ sealed class ValueResult<T> with _$ValueResult<T> {
   /// Whether the associated value has data.
   bool get isSuccess => this is ValueResultSuccess<T>;
 
-  /// The data value, or null if in loading or error state.
+  /// The success value, or null if in failure state.
   T? get data => maybeWhen(
     success: (data) => data,
     orElse: () => null,
   );
 
-  /// The error value, or null if in loading or data state.
+  /// The failure exception, or null if in success state.
   Exception? get failure => maybeWhen(
     failure: (error) => error,
     orElse: () => null,
