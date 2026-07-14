@@ -2,6 +2,10 @@
 
 A minimal, production-grade MVVM ViewModel contract for Flutter.
 
+**[📖 Read the Documentation Website](https://kenjiz.github.io/vm_result/)**
+
+---
+
 `vm_result` provides a typed `Result<T>` state model and a `ChangeNotifier`-based `VMResult<S>` base class that eliminates boilerplate for async state management. It enforces a clear contract: every async operation is represented as one of four states — `initial`, `loading`, `data`, or `error` — and gives you guard helpers that handle transitions automatically.
 
 ---

@@ -31,15 +31,13 @@ jobs:
         run: npm ci
         working-directory: website
 
-      - name: Build and Deploy to GitHub Pages
-        env:
-          # This token is automatically provided by GitHub Actions
-          # to authorize pushing the compiled site back to the gh-pages branch
-          GIT_USER: git
-          CURRENT_BRANCH: main
-          DEPLOYMENT_BRANCH: gh-pages
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          npm run deploy
+      - name: Build Website
+        run: npm run build
         working-directory: website
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./website/build
+
