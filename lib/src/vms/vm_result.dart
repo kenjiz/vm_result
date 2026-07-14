@@ -270,6 +270,7 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
     if (_tryHandleDisposed(onError ?? setError)) return;
 
     _isExecuting = true;
+    notifyListeners();
 
     try {
       final result = await action();
@@ -286,6 +287,7 @@ abstract class VMResult<S> extends ChangeNotifier implements ValueListenable<Res
       rethrow;
     } finally {
       _isExecuting = false;
+      notifyListeners();
     }
   }
 
