@@ -16,7 +16,7 @@ Add `vm_result` to your Flutter project's `pubspec.yaml` dependencies:
 dependencies:
   flutter:
     sdk: flutter
-  vm_result: ^0.1.1 # Use the latest version
+  vm_result: ^0.1.2 # Use the latest version
 ```
 
 Or run the following command in your terminal:
