@@ -10,7 +10,7 @@ sidebar_position: 1
 
 ## 1. `Result<T>`
 
-`Result<T>` is a sealed, Freezed-generated class representing the lifecycle of an asynchronous operation. It can be in one of four states:
+`Result<T>` is a sealed class representing the lifecycle of an asynchronous operation. It can be in one of four states:
 
 | State | Factory | Meaning |
 | :--- | :--- | :--- |

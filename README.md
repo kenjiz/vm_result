@@ -12,9 +12,9 @@ A minimal, production-grade MVVM ViewModel contract for Flutter.
 
 ## Features
 
-- **`Result<T>`** — A freezed sealed class representing the four lifecycle states of an async value.
+- **`Result<T>`** — A sealed class representing the four lifecycle states of an async value.
 - **`ValueResult<T>`** — A lightweight success/failure type for operations where you need to branch on the outcome.
-- **`PaginatedResult<T>`** — A freezed model for accumulated paginated list state (items, page, hasNextPage, isLoadingMore).
+- **`PaginatedResult<T>`** — A model for accumulated paginated list state (items, page, hasNextPage, isLoadingMore).
 - **`VMResult<S>`** — Abstract `ChangeNotifier` ViewModel base class backed by `ValueListenable<Result<S>>`.
 - **`VMPaginated<S>`** — Extends `VMResult` with built-in `loadFirst`, `loadMore`, and `refresh` pagination logic.
 - **`VMResultEffect<S, UE>`** — Extends `VMResult` with a broadcast `Stream` for one-shot UI side effects.
@@ -47,7 +47,7 @@ flutter pub get
 
 ### `Result<T>`
 
-A freezed sealed class with four states:
+A sealed class with four states:
 
 | State           | Factory                   | Use                                   |
 | --------------- | ------------------------- | ------------------------------------- |
@@ -70,7 +70,7 @@ result.asError     // ResultError<T>?
 result.asLoading   // ResultLoading<T>?
 ```
 
-**Pattern matching (via freezed):**
+**Pattern matching:**
 
 ```dart
 result.when(
@@ -509,17 +509,8 @@ Model Layer
 ## Requirements
 
 - Flutter SDK
-- Dart `^3.10.0`
-- [`freezed_annotation`](https://pub.dev/packages/freezed_annotation) `^3.1.0`
+- Dart `^3.12.0`
 - [`talker_flutter`](https://pub.dev/packages/talker_flutter) `^5.1.13`
-
-### Code generation
-
-This package uses [freezed](https://pub.dev/packages/freezed) for the `Result`, `UiEffect`, and `PaginatedResult` models. If you modify those files, regenerate with:
-
-```sh
-dart run build_runner build --delete-conflicting-outputs
-```
 
 ---
 

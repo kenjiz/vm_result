@@ -35,7 +35,7 @@ Implemented in `VMResult`:
 Implemented:
 
 - `PageResult<T>` — plain class returned by `fetchPage(int page)`, carries `items` and `hasNextPage`
-- `PaginatedResult<T>` — freezed model holding accumulated `items`, current `page`, `hasNextPage`, and `isLoadingMore`
+- `PaginatedResult<T>` — class holding accumulated `items`, current `page`, `hasNextPage`, and `isLoadingMore`
 - `VMPaginated<S> extends VMResult<PaginatedResult<S>>` — exposes `loadFirst()`, `loadMore()`, and `refresh()`
   - `loadFirst()` / `refresh()` delegate to `run()` — get the drop guard and full loading state for free
   - `loadMore()` uses `isLoadingMore` for inline progress; on error the item list is preserved and `ValueResult.failure` is returned
