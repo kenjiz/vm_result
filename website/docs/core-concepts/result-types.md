@@ -32,6 +32,7 @@ result.hasValue;      // true if state is Data
 // Safe type casting: returns null if the state does not match
 result.value;         // returns String? (null if not Data)
 result.errorValue;    // returns Exception? (null if not Error)
+result.errorAs<E>();  // returns E? (cast exception to E if matches, else null)
 
 result.asData;        // returns ResultData<String>?
 result.asError;       // returns ResultError<String>?
@@ -100,9 +101,58 @@ Future<void> submitOrder() async {
 ```dart
 final ValueResult<User> result = ...;
 
-result.isSuccess; // true if success
-result.isFailure; // true if failure
+result.isSuccess;    // true if success
+result.isFailure;    // true if failure
 
-result.data;      // returns T? (null if failure)
-result.failure;   // returns Exception? (null if success)
+result.data;         // returns T? (null if failure)
+result.failure;      // returns Exception? (null if success)
+result.errorAs<E>(); // returns E? (cast failure to E if matches, else null)
+```
+
+---
+
+## 3. Handling Custom Exceptions
+
+In many projects, you might define a custom exception hierarchy, such as:
+
+```dart
+class AppException implements Exception {
+  const AppException(this.message);
+  final String message;
+}
+
+class NetworkFailure extends AppException {
+  const NetworkFailure() : super('Connection error');
+}
+```
+
+Since `Result.error` and `ValueResult.failure` accept the standard `Exception` class, custom exceptions are fully supported (as they extend `Exception`). 
+
+To easily extract and cast custom exceptions in your UI/logic without manually casting, use the `errorAs<E>()` helper method on both `Result` and `ValueResult`:
+
+```dart
+// Result
+if (result.hasError) {
+  final appException = result.errorAs<AppException>();
+  if (appException != null) {
+    print(appException.message);
+  }
+}
+
+// ValueResult
+result.when(
+  success: (data) => handleSuccess(data),
+  failure: (exception) {
+    // Cast explicitly using errorAs:
+    final appException = result.errorAs<AppException>();
+    
+    // Or pattern match on the exception directly:
+    switch (exception) {
+      case NetworkFailure():
+        showToast('No internet connection');
+      default:
+        showToast(exception.toString());
+    }
+  },
+);
 ```

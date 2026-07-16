@@ -64,6 +64,7 @@ result.hasError    // bool
 result.hasValue    // bool
 result.value       // T? — null if not data state
 result.errorValue  // Exception? — null if not error state
+result.errorAs<E>() // E? — cast exception to E if matches, else null
 result.asData      // ResultData<T>?
 result.asError     // ResultError<T>?
 result.asLoading   // ResultLoading<T>?
@@ -90,10 +91,59 @@ A two-state result type for operations where you need to act differently on succ
 ValueResult.success(data)
 ValueResult.failure(exception)
 
-result.isSuccess  // bool
-result.isFailure  // bool
-result.data       // T?
-result.failure    // Exception?
+result.isSuccess    // bool
+result.isFailure    // bool
+result.data         // T?
+result.failure      // Exception?
+result.errorAs<E>() // E? — cast failure to E if matches, else null
+```
+
+---
+
+### Handling Custom Exceptions
+
+In many projects, you might define a custom exception hierarchy, such as:
+
+```dart
+class AppException implements Exception {
+  const AppException(this.message);
+  final String message;
+}
+
+class NetworkFailure extends AppException {
+  const NetworkFailure() : super('Connection error');
+}
+```
+
+Since `Result.error` and `ValueResult.failure` accept the standard `Exception` class, custom exceptions are fully supported (as they extend `Exception`). 
+
+To easily extract and cast custom exceptions in your UI/logic without manually casting, use the `errorAs<E>()` helper method on both `Result` and `ValueResult`:
+
+```dart
+// Result
+if (result.hasError) {
+  final appException = result.errorAs<AppException>();
+  if (appException != null) {
+    print(appException.message);
+  }
+}
+
+// ValueResult
+result.when(
+  success: (data) => handleSuccess(data),
+  failure: (exception) {
+    // Cast explicitly using errorAs:
+    final appException = result.errorAs<AppException>();
+    
+    // Or pattern match on the exception directly:
+    switch (exception) {
+      case NetworkFailure():
+        showToast('No internet connection');
+      default:
+        showToast(exception.toString());
+    }
+  },
+);
 ```
 
 ---

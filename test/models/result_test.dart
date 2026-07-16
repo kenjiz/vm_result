@@ -1,6 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vm_result/vm_result.dart';
 
+class CustomException implements Exception {
+  final String message;
+  CustomException(this.message);
+}
+
 void main() {
   group('Result', () {
     group('constructors', () {
@@ -73,6 +78,26 @@ void main() {
         expect(Result<int>.initial().errorValue, isNull);
         expect(Result<int>.loading().errorValue, isNull);
         expect(Result.data(1).errorValue, isNull);
+      });
+    });
+
+    group('errorAs', () {
+      test('returns custom exception when cast matches', () {
+        final error = CustomException('fail');
+        final result = Result<int>.error(error);
+        expect(result.errorAs<CustomException>(), error);
+      });
+
+      test('returns null when cast does not match', () {
+        final error = Exception('fail');
+        final result = Result<int>.error(error);
+        expect(result.errorAs<CustomException>(), isNull);
+      });
+
+      test('returns null in non-error states', () {
+        expect(Result<int>.initial().errorAs<CustomException>(), isNull);
+        expect(Result<int>.loading().errorAs<CustomException>(), isNull);
+        expect(Result.data(1).errorAs<CustomException>(), isNull);
       });
     });
 
@@ -191,6 +216,24 @@ void main() {
 
       test('returns null on success', () {
         expect(ValueResult.success(1).failure, isNull);
+      });
+    });
+
+    group('errorAs', () {
+      test('returns custom exception when cast matches', () {
+        final error = CustomException('fail');
+        final r = ValueResult<int>.failure(error);
+        expect(r.errorAs<CustomException>(), error);
+      });
+
+      test('returns null when cast does not match', () {
+        final error = Exception('fail');
+        final r = ValueResult<int>.failure(error);
+        expect(r.errorAs<CustomException>(), isNull);
+      });
+
+      test('returns null on success', () {
+        expect(ValueResult.success(1).errorAs<CustomException>(), isNull);
       });
     });
 

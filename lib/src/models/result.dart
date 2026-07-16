@@ -56,6 +56,12 @@ sealed class Result<T> with _$Result<T> {
     error: (error) => error,
     orElse: () => null,
   );
+
+  /// Returns the error cast to [E], or null if the error is not of type [E].
+  E? errorAs<E extends Exception>() {
+    final err = errorValue;
+    return err is E ? err : null;
+  }
 }
 
 /// Result type for operations that need explicit success/failure handling.
@@ -103,4 +109,10 @@ sealed class ValueResult<T> with _$ValueResult<T> {
     failure: (error) => error,
     orElse: () => null,
   );
+
+  /// Returns the failure exception cast to [E], or null if the failure is not of type [E].
+  E? errorAs<E extends Exception>() {
+    final err = failure;
+    return err is E ? err : null;
+  }
 }
