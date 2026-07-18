@@ -25,6 +25,7 @@ sidebar_position: 1
 ```dart
 final Result<String> result = ...;
 
+result.isInitial;     // true if state is Initial
 result.isLoading;     // true if state is Loading
 result.hasError;      // true if state is Error
 result.hasValue;      // true if state is Data
@@ -37,6 +38,7 @@ result.errorAs<E>();  // returns E? (cast exception to E if matches, else null)
 result.asData;        // returns ResultData<String>?
 result.asError;       // returns ResultError<String>?
 result.asLoading;     // returns ResultLoading<String>?
+result.asInitial;     // returns ResultInitial<String>?
 ```
 
 ### Pattern Matching (`when` & `maybeWhen`)

@@ -59,6 +59,7 @@ A sealed class with four states:
 **Convenience getters:**
 
 ```dart
+result.isInitial   // bool
 result.isLoading   // bool
 result.hasError    // bool
 result.hasValue    // bool
@@ -68,6 +69,7 @@ result.errorAs<E>() // E? — cast exception to E if matches, else null
 result.asData      // ResultData<T>?
 result.asError     // ResultError<T>?
 result.asLoading   // ResultLoading<T>?
+result.asInitial   // ResultInitial<T>?
 ```
 
 **Pattern matching:**
