@@ -31,6 +31,13 @@ sealed class Result<T> {
   /// is not a [ResultLoading].
   ResultLoading<T>? get asLoading => this is ResultLoading<T> ? this as ResultLoading<T> : null;
 
+  /// Upcast [Result] into a [ResultInitial], or return null if the [Result]
+  /// is not a [ResultInitial].
+  ResultInitial<T>? get asInitial => this is ResultInitial<T> ? this as ResultInitial<T> : null;
+
+  /// Whether the associated value is in an initial state.
+  bool get isInitial => this is ResultInitial<T>;
+
   /// Whether the associated value is in a loading state.
   bool get isLoading => this is ResultLoading<T>;
 

@@ -34,6 +34,13 @@ void main() {
     });
 
     group('boolean getters', () {
+      test('isInitial is true only for initial state', () {
+        expect(Result<int>.initial().isInitial, isTrue);
+        expect(Result<int>.loading().isInitial, isFalse);
+        expect(Result.data(1).isInitial, isFalse);
+        expect(Result<int>.error(Exception()).isInitial, isFalse);
+      });
+
       test('isLoading is true only for loading state', () {
         expect(Result<int>.initial().isLoading, isFalse);
         expect(Result<int>.loading().isLoading, isTrue);
@@ -135,6 +142,16 @@ void main() {
         expect(Result<String>.initial().asLoading, isNull);
         expect(Result.data('x').asLoading, isNull);
         expect(Result<String>.error(Exception()).asLoading, isNull);
+      });
+
+      test('asInitial returns ResultInitial when initial', () {
+        expect(Result<String>.initial().asInitial, isA<ResultInitial<String>>());
+      });
+
+      test('asInitial returns null in non-initial states', () {
+        expect(Result<String>.loading().asInitial, isNull);
+        expect(Result.data('x').asInitial, isNull);
+        expect(Result<String>.error(Exception()).asInitial, isNull);
       });
     });
 
